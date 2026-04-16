@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusCruze | User Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .vehicle-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .vehicle-card {
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .vehicle-card:hover {
+            border-color: var(--primary);
+            background: #eef2ff;
+        }
+
+        .vehicle-card.selected {
+            border-color: var(--primary);
+            background: #eef2ff;
+            box-shadow: var(--shadow);
+        }
+
+        .vehicle-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .price-breakdown {
+            background: #f3f4f6;
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            margin-bottom: 2rem;
+            display: none;
+        }
+
+        .price-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .price-total {
+            border-top: 1px solid var(--border-color);
+            margin-top: 1rem;
+            padding-top: 1rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="brand">Campus<span>Cruze</span></div>
+        <div class="nav-links">
+            <span id="user-greeting">Hello, User</span>
+            <button onclick="logout()" class="btn btn-outline" style="padding: 0.4rem 1rem">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container dashboard-layout">
+        <!-- Sidebar / Booking Form -->
+        <div class="card">
+            <h2 class="mb-2">Book a Ride</h2>
+            
+            <div class="form-group">
+                <label>Pickup Location</label>
+                <input type="text" id="pickup" class="form-control" placeholder="e.g. Main Gate" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Dropoff Location</label>
+                <input type="text" id="dropoff" class="form-control" placeholder="e.g. Metro Station" required>
+            </div>
+
+            <div class="form-group">
+                <label>Estimated Distance (in km)</label>
+                <input type="number" id="distance" class="form-control" placeholder="e.g. 5" min="1" required>
+            </div>
+
+            <label style="font-weight: 600; margin-bottom: 0.5rem; display:block">Select Ride Type</label>
+            <div class="vehicle-options">
+                <div class="vehicle-card" onclick="selectVehicle('Bike', this)">
+                    <div class="vehicle-icon">🏍️</div>
+                    <div style="font-weight: 600">Bike</div>
+                </div>
+                <div class="vehicle-card" onclick="selectVehicle('Auto', this)">
+                    <div class="vehicle-icon">🛺</div>
+                    <div style="font-weight: 600">Auto</div>
+                </div>
+                <div class="vehicle-card" onclick="selectVehicle('Car', this)">
+                    <div class="vehicle-icon">🚗</div>
+                    <div style="font-weight: 600">Car</div>
+                </div>
+            </div>
+
+            <button class="btn btn-secondary mb-1" style="width: 100%" onclick="calculatePrice()">Calculate Fare</button>
+
+            <!-- Price Breakdown -->
+            <div id="price-box" class="price-breakdown">
+                <div class="price-row">
+                    <span>Base Fare & Dist.</span>
+                    <span id="p-base">₹0</span>
+                </div>
+                <div class="price-row" id="discount-row" style="color: var(--secondary); font-weight: 600;">
+                    <span>Campus ID Offer</span>
+                    <span id="p-disc">-₹0</span>
+                </div>
+                <div class="price-total">
+                    <span>Total Fare</span>
+                    <span id="p-total">₹0</span>
+                </div>
+                <button class="btn btn-primary mt-1" style="width: 100%" onclick="bookRide()">Confirm & Find Ride</button>
+            </div>
+        </div>
+
+        <!-- Map / Promo Area -->
+        <div class="map-placeholder">
+            <div class="map-overlay">
+                <div class="tracker-dot"></div>
+                <h3 class="mt-1" style="color: var(--primary);">Detecting nearby riders...</h3>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedVehicle = null;
+        let currentPrice = 0;
+        const user = JSON.parse(localStorage.getItem('cc_user'));
+        
+        if(!user) window.location.href = 'login.html';
+        
+        document.getElementById('user-greeting').textContent = `Hello, ${user.username} (${user.role})`;
+
+        function selectVehicle(type, el) {
+            selectedVehicle = type;
+            document.querySelectorAll('.vehicle-card').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+
+        async function calculatePrice() {
+            const distance = document.getElementById('distance').value;
+            if(!distance || !selectedVehicle) return alert('Enter distance and select a vehicle.');
+
+            const res = await fetch('http://localhost:3000/api/calculate-price', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    distance: Number(distance),
+                    vehicle_type: selectedVehicle,
+                    role: user.role,
+                    id_card_number: user.id_card_number
+                })
+            });
+            const data = await res.json();
+
+            document.getElementById('price-box').style.display = 'block';
+            document.getElementById('p-base').textContent = `₹${data.original_price}`;
+            
+            if(data.discount_amount > 0) {
+                document.getElementById('discount-row').style.display = 'flex';
+                document.getElementById('p-disc').textContent = `-₹${data.discount_amount}`;
+            } else {
+                document.getElementById('discount-row').style.display = 'none';
+            }
+            
+            document.getElementById('p-total').textContent = `₹${data.final_price}`;
+            currentPrice = data.final_price;
+        }
+
+        async function bookRide() {
+            const payload = {
+                user_id: user.id,
+                pickup: document.getElementById('pickup').value,
+                dropoff: document.getElementById('dropoff').value,
+                distance: document.getElementById('distance').value,
+                vehicle_type: selectedVehicle,
+                price: currentPrice
+            };
+
+            const res = await fetch('http://localhost:3000/api/book', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if(res.ok) {
+                localStorage.setItem('cc_current_booking', data.booking_id);
+                window.location.href = 'tracking.html';
+            } else {
+                alert('Booking failed');
+            }
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>

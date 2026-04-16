@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusCruze | Login & Register</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, var(--bg-color) 0%, #e0e7ff 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .auth-container {
+            background: var(--card-bg);
+            padding: 3rem;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 0.75rem;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-body);
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom: 3px solid var(--primary);
+            margin-bottom: -2px;
+        }
+
+        .auth-view { display: none; }
+        .auth-view.active { display: block; }
+    </style>
+</head>
+<body>
+
+    <div class="toast" id="toast"></div>
+
+    <div class="auth-container">
+        <a href="index.html" class="brand" style="justify-content: center; margin-bottom: 2rem; font-size: 2rem;">Campus<span>Cruze</span></a>
+
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('login')">Login</div>
+            <div class="tab" onclick="switchTab('register')">Register</div>
+        </div>
+
+        <!-- Login Form -->
+        <div id="login-view" class="auth-view active">
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="log-username" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="log-password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%">Sign In</button>
+            </form>
+        </div>
+
+        <!-- Register Form -->
+        <div id="register-view" class="auth-view">
+            <form id="registerForm">
+                <div class="form-group">
+                    <label>College Name</label>
+                    <select id="reg-college" class="form-control" required>
+                        <option value="">Select College...</option>
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>I am a...</label>
+                    <select id="reg-role" class="form-control" required onchange="handleRoleChange()">
+                        <option value="student">Student</option>
+                        <option value="professor">Professor / Lecturer</option>
+                        <option value="rider">Rider (Driver)</option>
+                    </select>
+                </div>
+                <div class="form-group" id="id-card-group">
+                    <label>ID Card Number <span class="badge badge-offer" style="float:right">Unlocks Offers!</span></label>
+                    <input type="text" id="reg-idcard" class="form-control" placeholder="Optional but recommended">
+                </div>
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="reg-username" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="reg-password" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-secondary" style="width: 100%">Create Account</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.auth-view').forEach(v => v.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(`${tab}-view`).classList.add('active');
+        }
+
+        function handleRoleChange() {
+            const role = document.getElementById('reg-role').value;
+            const idGroup = document.getElementById('id-card-group');
+            if (role === 'rider') {
+                idGroup.classList.add('hidden');
+                document.getElementById('reg-idcard').value = '';
+            } else {
+                idGroup.classList.remove('hidden');
+            }
+        }
+
+        function showToast(msg, isError=false) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.style.background = isError ? '#dc2626' : '#10b981';
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        // Fetch Colleges on load
+        fetch('http://localhost:3000/api/colleges')
+            .then(res => res.json())
+            .then(data => {
+                const select = document.getElementById('reg-college');
+                data.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c;
+                    opt.textContent = c;
+                    select.appendChild(opt);
+                });
+            });
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const res = await fetch('http://localhost:3000/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: document.getElementById('log-username').value,
+                    password: document.getElementById('log-password').value
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                localStorage.setItem('cc_user', JSON.stringify(data));
+                window.location.href = data.role === 'rider' ? 'rider_dashboard.html' : 'dashboard.html';
+            } else {
+                showToast(data.error, true);
+            }
+        });
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const res = await fetch('http://localhost:3000/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: document.getElementById('reg-username').value,
+                    password: document.getElementById('reg-password').value,
+                    role: document.getElementById('reg-role').value,
+                    college_name: document.getElementById('reg-college').value,
+                    id_card_number: document.getElementById('reg-idcard').value
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast('Registration successful! Please login.');
+                switchTab('login');
+                document.getElementById('log-username').value = data.username;
+            } else {
+                showToast(data.error, true);
+            }
+        });
+    </script>
+</body>
+</html>

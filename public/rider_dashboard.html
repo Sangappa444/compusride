@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rider Dashboard | CampusCruze</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="brand">Campus<span>Cruze</span> <span class="badge badge-accent" style="margin-left: 10px; font-size: 0.7rem; color: #000; background: var(--accent);">Rider Mode</span></div>
+        <div class="nav-links">
+            <span id="user-greeting">Hello, Rider</span>
+            <button onclick="logout()" class="btn btn-outline" style="padding: 0.4rem 1rem">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h2 class="mb-2">Available Ride Requests</h2>
+        <div id="requests-grid" class="grid-2">
+            <!-- Populated via JS -->
+                 <div class="card" style="text-align: center; grid-column: 1 / -1;">
+                    <div class="loader mb-1"></div>
+                    <p>Scanning college campuses for requests...</p>
+                 </div>
+        </div>
+    </div>
+
+    <script>
+        const user = JSON.parse(localStorage.getItem('cc_user'));
+        if(!user || user.role !== 'rider') {
+            alert('Access denied. Riders only.');
+            window.location.href = 'login.html';
+        }
+        
+        document.getElementById('user-greeting').textContent = `Hello, ${user.username}`;
+
+        async function fetchRides() {
+            const res = await fetch('http://localhost:3000/api/rides/pending');
+            const rides = await res.json();
+            
+            const grid = document.getElementById('requests-grid');
+            if(rides.length === 0) {
+                grid.innerHTML = `
+                <div class="card" style="text-align: center; grid-column: 1 / -1;">
+                    <h3 style="color: var(--text-body);">No rides available right now.</h3>
+                    <p>We are constantly looking for new requests.</p>
+                </div>`;
+                return;
+            }
+
+            grid.innerHTML = '<div style="grid-column: 1 / -1; font-weight: 600; color: var(--secondary);">🔥 High demand around '+rides[0].college_name+'!</div>';
+            
+            rides.forEach(r => {
+                grid.innerHTML += `
+                <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                            <span class="badge badge-blue">${r.vehicle_type}</span>
+                            <span style="font-weight: 700; font-size: 1.25rem;">₹${r.price}</span>
+                        </div>
+                        <h4 style="margin-bottom: 0.25rem">${r.username}</h4>
+                        <p style="font-size: 0.85rem; color: var(--text-body); margin-bottom: 1rem;">${r.college_name}</p>
+                        
+                        <div style="background: #f3f4f6; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                            <div style="margin-bottom: 0.5rem"><strong>Pick up:</strong> ${r.pickup}</div>
+                            <div><strong>Drop off:</strong> ${r.dropoff}</div>
+                            <div style="margin-top: 0.5rem; font-size: 0.85rem;">Distance: ${r.distance} km</div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-secondary" style="width: 100%" onclick="acceptRide(${r.id})">Accept Ride</button>
+                </div>
+                `;
+            });
+        }
+
+        async function acceptRide(id) {
+            const res = await fetch('http://localhost:3000/api/rides/accept', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ booking_id: id, rider_id: user.id })
+            });
+            const data = await res.json();
+            if(res.ok) {
+                localStorage.setItem('cc_current_booking', id);
+                window.location.href = 'tracking.html';
+            } else {
+                alert(data.error);
+                fetchRides();
+            }
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
+
+        // Auto fetch every 3 seconds
+        fetchRides();
+        setInterval(fetchRides, 3000);
+
+    </script>
+</body>
+</html>

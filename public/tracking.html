@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Tracking | CampusCruze</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="brand">Campus<span>Cruze</span></div>
+        <div class="nav-links">
+            <button onclick="goBack()" class="btn btn-outline" style="padding: 0.4rem 1rem">Back</button>
+        </div>
+    </nav>
+
+    <div class="container dashboard-layout">
+        
+        <!-- Info Section -->
+        <div class="card" id="info-section">
+            <h2 class="mb-1" id="ride-status">Connecting...</h2>
+            
+            <div id="driver-details" style="display: none; background: #f3f4f6; padding: 1.5rem; border-radius: var(--radius); margin-bottom: 1.5rem;">
+                <div style="font-weight: 700; margin-bottom: 0.5rem">Driver Found!</div>
+                <div>Name: <span id="r-name" style="font-weight: 600;">...</span></div>
+                <div>Vehicle: <span id="r-veh" class="badge badge-accent">...</span></div>
+            </div>
+
+            <div style="border-top: 1px solid var(--border-color); padding-top: 1.5rem; margin-bottom: 1.5rem;">
+                <div style="margin-bottom: 0.5rem"><strong>Pick up:</strong> <span id="r-pickup">...</span></div>
+                <div><strong>Drop off:</strong> <span id="r-dropoff">...</span></div>
+                <div style="margin-top: 1.5rem; font-size: 1.25rem; font-weight: 700; color: var(--primary);">
+                    Amount to Pay: <span id="r-price">...</span>
+                </div>
+            </div>
+
+            <!-- Rider actions -->
+            <div id="rider-controls" style="display: none;">
+                <button class="btn btn-primary mb-1" id="btn-arrive" style="width: 100%" onclick="updateStatus('arrived')">I have arrived</button>
+                <button class="btn btn-primary mb-1" id="btn-start" style="width: 100%; display: none;" onclick="updateStatus('in_progress')">Start Trip</button>
+                <button class="btn btn-secondary" id="btn-end" style="width: 100%; display: none;" onclick="finishRide()">Finish & Collect Cash</button>
+            </div>
+            
+            <!-- User Notification for Payment -->
+            <div id="user-payment-action" style="display: none;">
+                <p style="color: var(--secondary); font-weight: 600; margin-bottom: 1rem;">You have arrived at your destination!</p>
+                <button class="btn btn-secondary" style="width: 100%" onclick="proceedToPay()">Proceed to Pay</button>
+            </div>
+
+        </div>
+
+        <!-- Map -->
+        <div class="map-placeholder">
+            <div class="map-overlay" style="background: rgba(255,255,255,0.2) !important">
+                <div class="tracker-dot" id="dot"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Hidden Payment Modal -->
+    <div id="payment-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center;">
+        <div class="card" style="width: 90%; max-width: 400px;">
+            <h2 class="mb-1 text-center">Checkout</h2>
+            <div class="text-center mb-2" style="font-size: 2rem; font-weight: 800; color: var(--primary)">
+                <span id="pay-amount"></span>
+            </div>
+            <p class="text-center mb-2">How would you like to pay?</p>
+            <button class="btn btn-outline mb-1" style="width: 100%" onclick="completePay('upi')">Pay with UPI Apps</button>
+            <button class="btn btn-outline" style="width: 100%" onclick="completePay('cash')">Pay Cash to Driver</button>
+        </div>
+    </div>
+
+    <script>
+        const user = JSON.parse(localStorage.getItem('cc_user'));
+        const bookingId = localStorage.getItem('cc_current_booking');
+
+        if(!user || !bookingId) window.location.href = 'login.html';
+
+        async function fetchStatus() {
+            const res = await fetch(`http://localhost:3000/api/rides/status/${bookingId}`);
+            const ride = await res.json();
+            
+            document.getElementById('r-pickup').textContent = ride.pickup;
+            document.getElementById('r-dropoff').textContent = ride.dropoff;
+            document.getElementById('r-price').textContent = `₹${ride.price}`;
+            document.getElementById('pay-amount').textContent = `₹${ride.price}`;
+
+            const statusText = document.getElementById('ride-status');
+            const dot = document.getElementById('dot');
+
+            // Rider Logic
+            if(user.role === 'rider') {
+                document.getElementById('rider-controls').style.display = 'block';
+                document.getElementById('driver-details').style.display = 'none';
+
+                if(ride.status === 'accepted') {
+                    statusText.textContent = "Head to Pickup";
+                    document.getElementById('btn-arrive').style.display = 'block';
+                } else if(ride.status === 'arrived') {
+                    statusText.textContent = "Waiting for passenger...";
+                    document.getElementById('btn-arrive').style.display = 'none';
+                    document.getElementById('btn-start').style.display = 'block';
+                } else if(ride.status === 'in_progress') {
+                    statusText.textContent = "Heading to Dropoff";
+                    document.getElementById('btn-start').style.display = 'none';
+                    document.getElementById('btn-end').style.display = 'block';
+                    dot.style.background = '#f59e0b'; // color change while moving
+                } else if(ride.status === 'completed') {
+                    alert('Ride completed. Earnings added to wallet.');
+                    localStorage.removeItem('cc_current_booking');
+                    window.location.href = 'rider_dashboard.html';
+                }
+            } 
+            // User Logic
+            else {
+                if(ride.status === 'pending') {
+                    statusText.textContent = "Searching for Riders...";
+                } else {
+                    document.getElementById('driver-details').style.display = 'block';
+                    document.getElementById('r-name').textContent = ride.rider_name || "Assigned Driver";
+                    document.getElementById('r-veh').textContent = ride.vehicle_type;
+
+                    if(ride.status === 'accepted') statusText.textContent = "Driver is on the way...";
+                    if(ride.status === 'arrived') statusText.textContent = "Driver has arrived!";
+                    if(ride.status === 'in_progress') {
+                        statusText.textContent = "Enjoy the ride!";
+                        dot.style.background = '#f59e0b';
+                    }
+                    if(ride.status === 'completed') {
+                        document.getElementById('user-payment-action').style.display = 'block';
+                        statusText.textContent = "Trip Completed. Please Pay.";
+                        dot.style.display = 'none';
+                    }
+                }
+            }
+        }
+
+        async function updateStatus(status) {
+            await fetch('http://localhost:3000/api/rides/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ booking_id: bookingId, status })
+            });
+            fetchStatus();
+        }
+
+        function finishRide() {
+            updateStatus('completed');
+        }
+
+        function proceedToPay() {
+            document.getElementById('payment-modal').style.display = 'flex';
+        }
+
+        function completePay(method) {
+            alert(`Payment of ${document.getElementById('pay-amount').textContent} via ${method.toUpperCase()} successful! Thanks for using CampusCruze!`);
+            localStorage.removeItem('cc_current_booking');
+            window.location.href = 'dashboard.html';
+        }
+
+        function goBack() {
+            window.location.href = user.role === 'rider' ? 'rider_dashboard.html' : 'dashboard.html';
+        }
+
+        fetchStatus();
+        setInterval(fetchStatus, 3000);
+    </script>
+</body>
+</html>
