@@ -67,7 +67,7 @@ app.post('/api/calculate-price', (req, res) => {
 
     let price = RATES[vehicle_type].base + (RATES[vehicle_type].perKm * distance);
     let appliedDiscount = 0;
-    
+
     // Festival / ID Card Offer Logic
     if (id_card_number && id_card_number.length > 3) {
         if (role === 'student') {
@@ -80,10 +80,10 @@ app.post('/api/calculate-price', (req, res) => {
     const discountAmount = price * appliedDiscount;
     const finalPrice = price - discountAmount;
 
-    res.json({ 
-        original_price: Math.round(price), 
-        discount_amount: Math.round(discountAmount), 
-        final_price: Math.round(finalPrice) 
+    res.json({
+        original_price: Math.round(price),
+        discount_amount: Math.round(discountAmount),
+        final_price: Math.round(finalPrice)
     });
 });
 
