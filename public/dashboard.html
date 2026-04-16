@@ -160,7 +160,7 @@
             const distance = document.getElementById('distance').value;
             if(!distance || !selectedVehicle) return alert('Enter distance and select a vehicle.');
 
-            const res = await fetch('http://localhost:3000/api/calculate-price', {
+            const res = await fetch('/api/calculate-price', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -196,7 +196,7 @@
                 price: currentPrice
             };
 
-            const res = await fetch('http://localhost:3000/api/book', {
+            const res = await fetch('/api/book', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)

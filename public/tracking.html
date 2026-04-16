@@ -80,7 +80,7 @@
         if(!user || !bookingId) window.location.href = 'login.html';
 
         async function fetchStatus() {
-            const res = await fetch(`http://localhost:3000/api/rides/status/${bookingId}`);
+            const res = await fetch(`/api/rides/status/${bookingId}`);
             const ride = await res.json();
             
             document.getElementById('r-pickup').textContent = ride.pickup;
@@ -139,7 +139,7 @@
         }
 
         async function updateStatus(status) {
-            await fetch('http://localhost:3000/api/rides/update', {
+            await fetch('/api/rides/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ booking_id: bookingId, status })

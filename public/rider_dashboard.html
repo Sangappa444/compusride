@@ -38,7 +38,7 @@
         document.getElementById('user-greeting').textContent = `Hello, ${user.username}`;
 
         async function fetchRides() {
-            const res = await fetch('http://localhost:3000/api/rides/pending');
+            const res = await fetch('/api/rides/pending');
             const rides = await res.json();
             
             const grid = document.getElementById('requests-grid');
@@ -78,7 +78,7 @@
         }
 
         async function acceptRide(id) {
-            const res = await fetch('http://localhost:3000/api/rides/accept', {
+            const res = await fetch('/api/rides/accept', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ booking_id: id, rider_id: user.id })

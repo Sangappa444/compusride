@@ -82,10 +82,14 @@
             <form id="registerForm">
                 <div class="form-group">
                     <label>College Name</label>
-                    <select id="reg-college" class="form-control" required>
+                    <select id="reg-college" class="form-control" required onchange="handleCollegeChange()">
                         <option value="">Select College...</option>
                         <!-- Populated by JS -->
                     </select>
+                </div>
+                <div class="form-group hidden" id="other-college-group">
+                    <label>Enter College Name</label>
+                    <input type="text" id="reg-other-college" class="form-control" placeholder="Type your college name">
                 </div>
                 <div class="form-group">
                     <label>I am a...</label>
@@ -131,6 +135,19 @@
             }
         }
 
+        function handleCollegeChange() {
+            const college = document.getElementById('reg-college').value;
+            const otherGroup = document.getElementById('other-college-group');
+            const otherInput = document.getElementById('reg-other-college');
+            if (college === 'other') {
+                otherGroup.classList.remove('hidden');
+                otherInput.required = true;
+            } else {
+                otherGroup.classList.add('hidden');
+                otherInput.required = false;
+            }
+        }
+
         function showToast(msg, isError=false) {
             const t = document.getElementById('toast');
             t.textContent = msg;
@@ -140,7 +157,7 @@
         }
 
         // Fetch Colleges on load
-        fetch('http://localhost:3000/api/colleges')
+        fetch('/api/colleges')
             .then(res => res.json())
             .then(data => {
                 const select = document.getElementById('reg-college');
@@ -150,11 +167,15 @@
                     opt.textContent = c;
                     select.appendChild(opt);
                 });
+                const otherOpt = document.createElement('option');
+                otherOpt.value = 'other';
+                otherOpt.textContent = 'Other (Type Manually)';
+                select.appendChild(otherOpt);
             });
 
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const res = await fetch('http://localhost:3000/api/login', {
+            const res = await fetch('/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -173,14 +194,20 @@
 
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const res = await fetch('http://localhost:3000/api/register', {
+            
+            let finalCollege = document.getElementById('reg-college').value;
+            if (finalCollege === 'other') {
+                finalCollege = document.getElementById('reg-other-college').value;
+            }
+
+            const res = await fetch('/api/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     username: document.getElementById('reg-username').value,
                     password: document.getElementById('reg-password').value,
                     role: document.getElementById('reg-role').value,
-                    college_name: document.getElementById('reg-college').value,
+                    college_name: finalCollege,
                     id_card_number: document.getElementById('reg-idcard').value
                 })
             });
