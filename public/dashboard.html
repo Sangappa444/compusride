@@ -6,6 +6,7 @@
     <title>CampusCruze | User Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         .vehicle-options {
             display: grid;
@@ -99,15 +100,15 @@
             <label style="font-weight: 600; margin-bottom: 0.5rem; display:block">Select Ride Type</label>
             <div class="vehicle-options">
                 <div class="vehicle-card" onclick="selectVehicle('Bike', this)">
-                    <div class="vehicle-icon">🏍️</div>
+                    <div class="vehicle-icon"><i data-lucide="bike"></i></div>
                     <div style="font-weight: 600">Bike</div>
                 </div>
                 <div class="vehicle-card" onclick="selectVehicle('Auto', this)">
-                    <div class="vehicle-icon">🛺</div>
+                    <div class="vehicle-icon"><i data-lucide="zap"></i></div>
                     <div style="font-weight: 600">Auto</div>
                 </div>
                 <div class="vehicle-card" onclick="selectVehicle('Car', this)">
-                    <div class="vehicle-icon">🚗</div>
+                    <div class="vehicle-icon"><i data-lucide="car"></i></div>
                     <div style="font-weight: 600">Car</div>
                 </div>
             </div>

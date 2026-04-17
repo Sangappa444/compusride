@@ -6,6 +6,7 @@
     <title>Rider Dashboard | CampusCruze</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
 
@@ -51,7 +52,7 @@
                 return;
             }
 
-            grid.innerHTML = '<div style="grid-column: 1 / -1; font-weight: 600; color: var(--secondary);">🔥 High demand around '+rides[0].college_name+'!</div>';
+            grid.innerHTML = '<div style="grid-column: 1 / -1; font-weight: 600; color: var(--secondary); display: flex; align-items: center; gap: 8px;"><i data-lucide="flame" size="20"></i> High demand around '+rides[0].college_name+'!</div>';
             
             rides.forEach(r => {
                 grid.innerHTML += `
@@ -75,6 +76,7 @@
                 </div>
                 `;
             });
+            lucide.createIcons();
         }
 
         async function acceptRide(id) {
@@ -101,7 +103,7 @@
         // Auto fetch every 3 seconds
         fetchRides();
         setInterval(fetchRides, 3000);
-
+        
     </script>
 </body>
 </html>
